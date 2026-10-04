@@ -1,0 +1,1 @@
+{"background_color":"#111827","description":"Hello World PWA","display":"standalone","icons":[{"purpose":"any","sizes":"192x192","src":"icon-192.png","type":"image/png"},{"purpose":"any","sizes":"512x512","src":"icon-512.png","type":"image/png"}],"name":"Hello World","scope":"/26-hello-world/","short_name":"Hello","start_url":"/26-hello-world/hello.html","theme_color":"#2563eb"}
