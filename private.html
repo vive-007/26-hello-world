@@ -6,59 +6,72 @@
   <title>Private — members only</title>
   <style>
     body { font-family: system-ui, sans-serif; max-width: 480px; margin: 3rem auto; padding: 0 1rem; }
-    button { font-size: 1rem; padding: 0.5rem 1rem; cursor: pointer; }
+    input, button { font-size: 1rem; padding: 0.5rem; margin-top: 0.5rem; width: 100%; box-sizing: border-box; }
+    button { cursor: pointer; }
     #content { display: none; margin-top: 1rem; border: 1px solid #ccc; padding: 1rem; }
+    #status { min-height: 1.5em; }
   </style>
 </head>
 <body>
   <h1>Private page</h1>
   <p id="status">Checking login…</p>
-  <button id="loginBtn" style="display:none">Sign in with Google</button>
+  <form id="loginForm" style="display:none">
+    <input id="email" type="email" placeholder="Email" autocomplete="username" required>
+    <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
+    <button type="submit">Sign in</button>
+  </form>
   <button id="logoutBtn" style="display:none">Sign out</button>
   <div id="content">
     <h2>Welcome, it's you!</h2>
     <p>This content is only visible to the allowed account.</p>
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    // TODO: paste your Firebase web-app config below (Firebase console → Project settings)
-    const firebaseConfig = {
-      apiKey: "PASTE_ME",
-      authDomain: "PASTE_ME",
-      projectId: "PASTE_ME",
-      appId: "PASTE_ME"
-    };
-    // TODO: put your Gmail here — only this account sees the content
-    const ALLOWED_EMAIL = "you@gmail.com";
+    const SUPABASE_URL = "https://wvtdntsyncjvovvrxktw.supabase.co";
+    // Public publishable key only — never put the secret key here.
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_iw2WE40zKKOr89394OEPfQ_2L-fDyRy";
+    // TODO: picks up your login email — only this account sees the content
+    const ALLOWED_EMAIL = "YOU@EXAMPLE.COM";
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     const status = document.getElementById('status');
-    const loginBtn = document.getElementById('loginBtn');
+    const loginForm = document.getElementById('loginForm');
     const logoutBtn = document.getElementById('logoutBtn');
     const content = document.getElementById('content');
 
-    loginBtn.onclick = () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-    logoutBtn.onclick = () => auth.signOut();
+    function showSignedOut(msg) {
+      status.textContent = msg || 'Not signed in.';
+      loginForm.style.display = '';
+      logoutBtn.style.display = 'none';
+      content.style.display = 'none';
+    }
+    function showSignedIn(email) {
+      status.textContent = `Signed in as ${email}`;
+      loginForm.style.display = 'none';
+      logoutBtn.style.display = '';
+      content.style.display = 'block';
+    }
 
-    auth.onAuthStateChanged((user) => {
-      if (user && user.email === ALLOWED_EMAIL) {
-        status.textContent = `Signed in as ${user.email}`;
-        loginBtn.style.display = 'none';
-        logoutBtn.style.display = '';
-        content.style.display = 'block';
-      } else if (user) {
-        status.textContent = `Signed in as ${user.email} — not authorized.`;
-        auth.signOut();
-      } else {
-        status.textContent = 'Not signed in.';
-        loginBtn.style.display = '';
-        logoutBtn.style.display = 'none';
-        content.style.display = 'none';
-      }
-    });
+    loginForm.onsubmit = async (e) => {
+      e.preventDefault();
+      status.textContent = 'Signing in…';
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const { data, error } = await client.auth.signInWithPassword({ email, password });
+      if (error) { showSignedOut('Login failed: ' + error.message); return; }
+      if (data.user && data.user.email === ALLOWED_EMAIL) { showSignedIn(data.user.email); }
+      else { await client.auth.signOut(); showSignedOut(`Signed in as ${data.user?.email} — not authorized.`); }
+    };
+    logoutBtn.onclick = async () => { await client.auth.signOut(); showSignedOut(); };
+
+    (async () => {
+      const { data } = await client.auth.getSession();
+      const email = data.session?.user?.email;
+      if (email && email === ALLOWED_EMAIL) showSignedIn(email);
+      else if (email) { await client.auth.signOut(); showSignedOut(`Signed in as ${email} — not authorized.`); }
+      else showSignedOut();
+    })();
   </script>
 </body>
 </html>
