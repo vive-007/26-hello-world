@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Private — members only</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 480px; margin: 3rem auto; padding: 0 1rem; }
+    button { font-size: 1rem; padding: 0.5rem 1rem; cursor: pointer; }
+    #content { display: none; margin-top: 1rem; border: 1px solid #ccc; padding: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Private page</h1>
+  <p id="status">Checking login…</p>
+  <button id="loginBtn" style="display:none">Sign in with Google</button>
+  <button id="logoutBtn" style="display:none">Sign out</button>
+  <div id="content">
+    <h2>Welcome, it's you!</h2>
+    <p>This content is only visible to the allowed account.</p>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script>
+    // TODO: paste your Firebase web-app config below (Firebase console → Project settings)
+    const firebaseConfig = {
+      apiKey: "PASTE_ME",
+      authDomain: "PASTE_ME",
+      projectId: "PASTE_ME",
+      appId: "PASTE_ME"
+    };
+    // TODO: put your Gmail here — only this account sees the content
+    const ALLOWED_EMAIL = "you@gmail.com";
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const status = document.getElementById('status');
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const content = document.getElementById('content');
+
+    loginBtn.onclick = () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+    logoutBtn.onclick = () => auth.signOut();
+
+    auth.onAuthStateChanged((user) => {
+      if (user && user.email === ALLOWED_EMAIL) {
+        status.textContent = `Signed in as ${user.email}`;
+        loginBtn.style.display = 'none';
+        logoutBtn.style.display = '';
+        content.style.display = 'block';
+      } else if (user) {
+        status.textContent = `Signed in as ${user.email} — not authorized.`;
+        auth.signOut();
+      } else {
+        status.textContent = 'Not signed in.';
+        loginBtn.style.display = '';
+        logoutBtn.style.display = 'none';
+        content.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
