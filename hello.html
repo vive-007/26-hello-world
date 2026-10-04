@@ -2,9 +2,26 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hello, World!</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 480px; margin: 3rem auto; padding: 0 1rem; }
+    input, button { font-size: 1rem; padding: 0.5rem; }
+    button { cursor: pointer; }
+    #out { margin-top: 1rem; font-weight: bold; }
+  </style>
 </head>
 <body>
   <h1>Hello, World!</h1>
+  <p><a href="https://github.com/vive-007/26-hello-world">View source on GitHub</a></p>
+  <input id="name" type="text" placeholder="Your name">
+  <button onclick="greet()">Greet</button>
+  <p id="out"></p>
+  <script>
+    function greet() {
+      const v = document.getElementById('name').value.trim() || 'World';
+      document.getElementById('out').textContent = `Hello, ${v}!`;
+    }
+  </script>
 </body>
 </html>
