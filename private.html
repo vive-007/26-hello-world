@@ -10,6 +10,8 @@
     button { cursor: pointer; }
     #content { display: none; margin-top: 1rem; border: 1px solid #ccc; padding: 1rem; }
     #status { min-height: 1.5em; }
+    #notes { list-style: none; padding: 0; }
+    #notes li { border-bottom: 1px solid #eee; padding: 0.4rem 0; }
   </style>
 </head>
 <body>
@@ -22,8 +24,12 @@
   </form>
   <button id="logoutBtn" style="display:none">Sign out</button>
   <div id="content">
-    <h2>Welcome, it's you!</h2>
-    <p>This content is only visible to the allowed account.</p>
+    <h2>My notes</h2>
+    <ul id="notes"></ul>
+    <form id="noteForm">
+      <input id="noteInput" type="text" placeholder="New note" required>
+      <button type="submit">Add note</button>
+    </form>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -31,14 +37,13 @@
     const SUPABASE_URL = "https://wvtdntsyncjvovvrxktw.supabase.co";
     // Public publishable key only — never put the secret key here.
     const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_iw2WE40zKKOr89394OEPfQ_2L-fDyRy";
-    // TODO: picks up your login email — only this account sees the content
-    const ALLOWED_EMAIL = "babu.sapbi@gmail.com";
 
     const client = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     const status = document.getElementById('status');
     const loginForm = document.getElementById('loginForm');
     const logoutBtn = document.getElementById('logoutBtn');
     const content = document.getElementById('content');
+    const notesUl = document.getElementById('notes');
 
     function showSignedOut(msg) {
       status.textContent = msg || 'Not signed in.';
@@ -46,11 +51,26 @@
       logoutBtn.style.display = 'none';
       content.style.display = 'none';
     }
-    function showSignedIn(email) {
-      status.textContent = `Signed in as ${email}`;
+    async function showSignedIn(email) {
+      status.textContent = `Signed in${email ? ' as ' + email : ''}`;
       loginForm.style.display = 'none';
       logoutBtn.style.display = '';
       content.style.display = 'block';
+      await loadNotes();
+    }
+
+    async function loadNotes() {
+      const { data, error } = await client
+        .from('private_notes')
+        .select('id,content,created_at')
+        .order('created_at', { ascending: false });
+      if (error) { status.textContent = 'Could not load notes: ' + error.message; return; }
+      notesUl.innerHTML = '';
+      for (const n of data) {
+        const li = document.createElement('li');
+        li.textContent = n.content;
+        notesUl.appendChild(li);
+      }
     }
 
     loginForm.onsubmit = async (e) => {
@@ -60,16 +80,23 @@
       const password = document.getElementById('password').value;
       const { data, error } = await client.auth.signInWithPassword({ email, password });
       if (error) { showSignedOut('Login failed: ' + error.message); return; }
-      if (data.user && data.user.email === ALLOWED_EMAIL) { showSignedIn(data.user.email); }
-      else { await client.auth.signOut(); showSignedOut(`Signed in as ${data.user?.email} — not authorized.`); }
+      showSignedIn(data.user?.email);
     };
     logoutBtn.onclick = async () => { await client.auth.signOut(); showSignedOut(); };
+
+    document.getElementById('noteForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('noteInput');
+      const { error } = await client.from('private_notes').insert({ content: input.value.trim() });
+      if (error) { status.textContent = 'Could not save: ' + error.message; return; }
+      input.value = '';
+      await loadNotes();
+    };
 
     (async () => {
       const { data } = await client.auth.getSession();
       const email = data.session?.user?.email;
-      if (email && email === ALLOWED_EMAIL) showSignedIn(email);
-      else if (email) { await client.auth.signOut(); showSignedOut(`Signed in as ${email} — not authorized.`); }
+      if (email) showSignedIn(email);
       else showSignedOut();
     })();
   </script>
