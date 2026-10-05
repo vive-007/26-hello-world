@@ -1,11 +1,11 @@
 {
-    "name": "flutter_hello",
-    "short_name": "flutter_hello",
+    "name": "Hello Notes",
+    "short_name": "Hello Notes",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Hello greeting + private notes (Supabase).",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

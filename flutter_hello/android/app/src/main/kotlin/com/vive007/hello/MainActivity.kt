@@ -1,4 +1,4 @@
-package com.example.hello.flutter_hello
+package com.vive007.hello
 
 import io.flutter.embedding.android.FlutterActivity
 
