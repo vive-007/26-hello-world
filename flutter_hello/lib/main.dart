@@ -8,6 +8,7 @@ import 'services/notes_repository.dart';
 import 'services/session_repository.dart';
 import 'services/supabase_notes_repository.dart';
 import 'services/supabase_session_repository.dart';
+import 'widgets/auto_logout.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -132,22 +133,42 @@ class _HelloPageState extends State<HelloPage> {
   }
 }
 
-class _PrivateGate extends StatelessWidget {
+class _PrivateGate extends StatefulWidget {
   const _PrivateGate({required this.sessions, required this.notes});
 
   final SessionRepository sessions;
   final NotesRepository notes;
 
   @override
+  State<_PrivateGate> createState() => _PrivateGateState();
+}
+
+class _PrivateGateState extends State<_PrivateGate> {
+  String? _notice;
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder(
-      stream: sessions.authStateChanges(),
+      stream: widget.sessions.authStateChanges(),
       builder: (context, snapshot) {
         final signedIn =
-            sessions.currentSession() != null ||
+            widget.sessions.currentSession() != null ||
             snapshot.data?.session != null;
-        if (signedIn) return NotesScreen(notes: notes, sessions: sessions);
-        return LoginScreen(sessions: sessions);
+        if (signedIn) {
+          return AutoLogout(
+            sessions: widget.sessions,
+            onTimeout: () => setState(
+              () => _notice = 'Signed out after 5 minutes of inactivity.',
+            ),
+            child: NotesScreen(
+              notes: widget.notes,
+              sessions: widget.sessions,
+            ),
+          );
+        }
+        final notice = _notice;
+        _notice = null;
+        return LoginScreen(sessions: widget.sessions, notice: notice);
       },
     );
   }

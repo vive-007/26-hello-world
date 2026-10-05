@@ -8,9 +8,11 @@ import 'package:flutter_hello/main.dart';
 import 'package:flutter_hello/models/note.dart';
 import 'package:flutter_hello/services/notes_repository.dart';
 import 'package:flutter_hello/services/session_repository.dart';
+import 'package:flutter_hello/widgets/auto_logout.dart';
 
 class FakeSessions implements SessionRepository {
   final _ctrl = StreamController<AuthState>.broadcast();
+  bool signedOut = false;
 
   @override
   Stream<AuthState> authStateChanges() => _ctrl.stream;
@@ -22,7 +24,9 @@ class FakeSessions implements SessionRepository {
   Future<void> signIn({required String email, required String password}) async {}
 
   @override
-  Future<void> signOut() async {}
+  Future<void> signOut() async {
+    signedOut = true;
+  }
 }
 
 class FakeNotes implements NotesRepository {
@@ -61,5 +65,52 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Private — sign in'), findsOneWidget);
+  });
+
+  testWidgets('AutoLogout signs out after idle timeout', (
+    WidgetTester tester,
+  ) async {
+    final sessions = FakeSessions();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AutoLogout(
+            sessions: sessions,
+            timeout: const Duration(seconds: 2),
+            warnBefore: const Duration(seconds: 1),
+            child: const Text('private stuff'),
+          ),
+        ),
+      ),
+    );
+
+    expect(sessions.signedOut, isFalse);
+    await tester.pump(const Duration(seconds: 3));
+    expect(sessions.signedOut, isTrue);
+  });
+
+  testWidgets('AutoLogout resets on interaction', (
+    WidgetTester tester,
+  ) async {
+    final sessions = FakeSessions();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AutoLogout(
+            sessions: sessions,
+            timeout: const Duration(seconds: 3),
+            warnBefore: const Duration(seconds: 30),
+            child: const Text('private stuff'),
+          ),
+        ),
+      ),
+    );
+
+    await tester.pump(const Duration(seconds: 2));
+    await tester.tap(find.text('private stuff'));
+    await tester.pump(const Duration(seconds: 2));
+    expect(sessions.signedOut, isFalse);
+    await tester.pump(const Duration(seconds: 2));
+    expect(sessions.signedOut, isTrue);
   });
 }

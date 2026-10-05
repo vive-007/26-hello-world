@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import '../services/session_repository.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, required this.sessions});
+  const LoginScreen({super.key, required this.sessions, this.notice});
 
   final SessionRepository sessions;
+  final String? notice;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -53,6 +54,10 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: .center,
               children: [
+                if (widget.notice != null) ...[
+                  Text(widget.notice!),
+                  const SizedBox(height: 12),
+                ],
                 TextField(
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
